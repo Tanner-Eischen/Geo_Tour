@@ -9,14 +9,13 @@ from video_generator import VideoGenerator
 
 def test_video_generator_init():
     """Test VideoGenerator initialization"""
-    generator = VideoGenerator(api_key="test-key", provider="replicate")
+    generator = VideoGenerator(api_key="test-key")
     assert generator.api_key == "test-key"
-    assert generator.provider == "replicate"
 
 
 def test_video_generator_mock_mode(temp_dir, sample_scene_plan):
     """Test video generation in mock mode"""
-    generator = VideoGenerator(api_key=None, provider="mock")
+    generator = VideoGenerator(api_key=None)
     result = generator.generate_clips(sample_scene_plan, output_dir=temp_dir)
     
     assert len(result) == len(sample_scene_plan["scenes"])
@@ -28,7 +27,7 @@ def test_video_generation_text_to_video(temp_dir, sample_scene_plan, mock_replic
     """Test text-to-video generation with Replicate"""
     with patch('video_generator.replicate.Client', return_value=mock_replicate_client):
         with patch('requests.get', return_value=mock_requests_get):
-            generator = VideoGenerator(api_key="test-key", provider="replicate")
+            generator = VideoGenerator(api_key="test-key")
             
             mock_replicate_client.run.return_value = "https://example.com/video.mp4"
             
@@ -42,7 +41,7 @@ def test_video_generation_image_to_video(temp_dir, sample_scene_plan, mock_story
     """Test image-to-video generation with storyboard images"""
     with patch('video_generator.replicate.Client', return_value=mock_replicate_client):
         with patch('requests.get', return_value=mock_requests_get):
-            generator = VideoGenerator(api_key="test-key", provider="replicate")
+            generator = VideoGenerator(api_key="test-key")
             
             mock_replicate_client.run.return_value = "https://example.com/video.mp4"
             
@@ -60,7 +59,7 @@ def test_video_generation_image_to_video(temp_dir, sample_scene_plan, mock_story
 
 def test_video_generation_no_api_key(temp_dir, sample_scene_plan):
     """Test video generation falls back to mock when no API key"""
-    generator = VideoGenerator(api_key=None, provider="replicate")
+    generator = VideoGenerator(api_key=None)
     result = generator.generate_clips(sample_scene_plan, output_dir=temp_dir)
     
     # Should fall back to mock mode
@@ -71,7 +70,7 @@ def test_video_generation_stability_provider(temp_dir, sample_scene_plan, mock_r
     """Test Stability AI provider via Replicate"""
     with patch('video_generator.replicate.Client', return_value=mock_replicate_client):
         with patch('requests.get', return_value=mock_requests_get):
-            generator = VideoGenerator(api_key="test-key", provider="stability")
+            generator = VideoGenerator(api_key="test-key")
             
             mock_replicate_client.run.return_value = "https://example.com/video.mp4"
             
@@ -82,8 +81,7 @@ def test_video_generation_stability_provider(temp_dir, sample_scene_plan, mock_r
 
 def test_video_generator_invalid_provider(temp_dir, sample_scene_plan):
     """Test video generator with invalid provider falls back to mock"""
-    generator = VideoGenerator(api_key="test-key", provider="invalid")
-    assert generator.provider == "mock"
+    generator = VideoGenerator(api_key="test-key")
     
     result = generator.generate_clips(sample_scene_plan, output_dir=temp_dir)
     assert len(result) == len(sample_scene_plan["scenes"])

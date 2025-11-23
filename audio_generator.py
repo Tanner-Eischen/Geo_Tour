@@ -24,6 +24,7 @@ class AudioGenerator:
             "elevenlabs": self._generate_elevenlabs,
             "openai": self._generate_openai,
             "google": self._generate_google,
+            "mock": self._generate_mock,
         }
         if self.provider not in self.providers:
             raise ValueError(f"TTS provider '{self.provider}' not supported. Available: {list(self.providers.keys())}")
@@ -91,6 +92,13 @@ class AudioGenerator:
     def _generate_google(self, text, output_dir):
         """Generate audio using Google Cloud TTS"""
         raise NotImplementedError("Google TTS implementation not yet available. Please use 'elevenlabs' provider.")
+
+    def _generate_mock(self, text, output_dir):
+        """Generate a mock audio file for testing"""
+        audio_path = output_dir / f"voiceover.{AUDIO_FORMAT}"
+        with open(audio_path, 'w') as f:
+            f.write("mock audio")
+        return str(audio_path)
 
 
 if __name__ == "__main__":

@@ -15,9 +15,9 @@ except ImportError:
     pass
 
 # API Keys - Set these as environment variables or edit directly
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-VIDEO_API_KEY = os.getenv("VIDEO_API_KEY", "")
-TTS_API_KEY = os.getenv("TTS_API_KEY", os.getenv("ELEVENLABS_API_KEY", ""))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+VIDEO_API_KEY = os.getenv("VIDEO_API_KEY")
+TTS_API_KEY = os.getenv("TTS_API_KEY", os.getenv("ELEVENLABS_API_KEY"))
 
 # Directory settings
 BASE_DIR = Path(__file__).parent
@@ -44,7 +44,7 @@ VIDEO_API_PROVIDER = "replicate"  # Options: replicate, runwayml, pika, stabilit
 VIDEO_MODEL = "gen-3-alpha"
 
 # Replicate API settings
-REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY", os.getenv("VIDEO_API_KEY", ""))
+REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY", os.getenv("VIDEO_API_KEY"))
 REPLICATE_MODEL = "anotherjesse/zeroscope-v2-xl"  # Text-to-video model
 STABILITY_MODEL = "bytedance/seedance-1-pro"  # Default image-to-video model (Replicate)
 

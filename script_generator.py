@@ -55,11 +55,24 @@ Make the script engaging and suitable for narration. DO NOT include any text out
             
             # Parse response
             script_text = response.choices[0].message.content.strip()
+            
+            # Try to extract JSON if there's extra text
+            if script_text.startswith("```json"):
+                script_text = script_text.replace("```json", "").replace("```", "").strip()
+            elif script_text.startswith("```"):
+                script_text = script_text.replace("```", "").strip()
+            
             script_data = json.loads(script_text)
             
             # Validate structure
             if "title" not in script_data or "script" not in script_data:
-                raise ValueError("Invalid script structure returned")
+                safe_print(f"❌ Invalid script structure. Received keys: {list(script_data.keys())}")
+                safe_print(f"Response preview: {script_text[:200]}...")
+                raise ValueError(f"Invalid script structure returned. Expected 'title' and 'script' fields, but got: {list(script_data.keys())}")
+            
+            # Validate that fields are not empty
+            if not script_data.get("title") or not script_data.get("script"):
+                raise ValueError("Script structure is valid but 'title' or 'script' field is empty")
             
             safe_print(f"✅ Script generated: '{script_data['title']}'")
             return script_data

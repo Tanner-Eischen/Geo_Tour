@@ -47,7 +47,19 @@ AVOID:
 - Made-up specific numbers or dates
 - Statements that begin "Scientists believe..." (show the evidence instead)
 
-Your script should be 30-60 seconds of narration that flows naturally and can be fully visualized."""
+Your script should be 30-60 seconds of narration that flows naturally and can be fully visualized.
+
+OUTPUT FORMAT - REQUIRED JSON STRUCTURE:
+You MUST return a JSON object with exactly this structure:
+{
+    "title": "engaging video title (string)",
+    "script": "complete narration script that flows naturally (string)"
+}
+
+The "title" field should be a short, engaging title for the video.
+The "script" field should contain the full narration text (30-60 seconds when spoken).
+
+Return ONLY the JSON object, no other text."""
 
     @staticmethod
     def get_scene_planning_prompt():
@@ -105,7 +117,7 @@ HALLUCINATION PREVENTION:
 - Keep descriptions grounded in observable reality
 - If script mentions "ancient rocks," describe visible rock formations, not "3.5 billion year old specimens"
 
-Each visual description should be 1-2 sentences of clear, specific, filmable content."""
+Each visual description should be 1-2 sentences of clear, specific, filmable content. Your output must be a single, valid JSON object."""
 
     @staticmethod
     def get_user_prompt_guidance():
@@ -177,7 +189,13 @@ IMPORTANT REQUIREMENTS:
 - Structure content to build visual narrative momentum
 - Ensure every statement has a clear visual representation
 
-Create a compelling 30-60 second narration script."""
+Create a compelling 30-60 second narration script.
+
+Return your response as a JSON object with this exact structure:
+{{
+    "title": "engaging video title",
+    "script": "complete narration script text"
+}}"""
 
 
 class HallucinationPrevention:

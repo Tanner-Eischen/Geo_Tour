@@ -237,12 +237,7 @@ def generate_video(prompt):
 
 
 
-
-# Header
-st.title("🎬 AI Video Generator")
-st.markdown("Transform your ideas into videos automatically using AI")
-
-# Sidebar - Configuration
+# Sidebar
 with st.sidebar:
     st.header("⚙️ Configuration")
     
