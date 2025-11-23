@@ -83,12 +83,11 @@ def initialize_pipeline():
         OUTPUT_DIR.mkdir(exist_ok=True)
         TEMP_DIR.mkdir(exist_ok=True)
         # Test write permission
-        test_file = TEMP_DIR / ".write_test"
-        test_file.write_text("test", encoding='utf-8')
+        test_file = OUTPUT_DIR / ".write_test"
+        test_file.write_text("test")
         test_file.unlink()
     except Exception as e:
-        errors.append(f"❌ **Directory access error**: Cannot write to output/temp directories: {e}")
-    
+        errors.append(f"Directory check failed: {e}")
     # Check required modules
     missing_modules = []
     try:
@@ -129,8 +128,7 @@ def initialize_pipeline():
         pipeline = VideoPipeline(
             openai_api_key=openai_key,
             video_api_key=replicate_key,
-            tts_api_key=tts_key,
-            tts_provider=st.session_state.tts_provider,
+         
             use_storyboard=st.session_state.get("use_storyboard", False),
             svd_model=st.session_state.get("svd_model"),
             sdxl_model=st.session_state.get("sdxl_model")
@@ -236,181 +234,7 @@ def generate_video(prompt):
         return None
 
 
-def test_t2i(prompt):
-    try:
-        import os, io, base64
-        from pathlib import Path
-        import replicate
-        from PIL import Image
-        from config import TEMP_DIR
-        model = st.session_state.get("sdxl_model")
-        key = os.getenv("REPLICATE_API_KEY") or os.getenv("VIDEO_API_KEY")
-        if not key:
-            st.error("Replicate API key not set")
-            return None
-        client = replicate.Client(api_token=key)
-        if "google/imagen-3" in (model or ""):
-            output = client.run(
-                model,
-                input={
-                    "prompt": prompt,
-                    "aspect_ratio": "16:9",
-                    "output_format": "png",
-                    "safety_filter_level": "block_only_high"
-                },
-                use_file_output=False
-            )
-        else:
-            output = client.run(
-                model,
-                input={
-                    "prompt": prompt,
-                    "width": 1024,
-                    "height": 576,
-                    "num_outputs": 1
-                },
-                use_file_output=False
-            )
-        # Extract image value (URL or base64)
-        val = None
-        if isinstance(output, dict) and output.get("images"):
-            first = output["images"][0]
-            if isinstance(first, dict):
-                val = first.get("content") or first.get("url")
-        if not val:
-            if isinstance(output, str):
-                val = output
-            elif isinstance(output, list) and output:
-                item = output[0]
-                if isinstance(item, str):
-                    val = item
-                elif isinstance(item, dict):
-                    for k in ("url", "image", "image_url", "base64", "data", "content"):
-                        if k in item:
-                            val = item[k]
-                            break
-            elif isinstance(output, dict):
-                for k in ("output", "url", "image", "image_url", "base64", "data", "content"):
-                    v = output.get(k)
-                    if isinstance(v, str):
-                        val = v
-                        break
-        img_path = Path(TEMP_DIR) / "test_t2i.png"
-        if not val:
-            st.error("No image returned from model")
-            with st.expander("Raw T2I output"):
-                try:
-                    st.json(output)
-                except Exception:
-                    st.write(type(output).__name__)
-            return None
-        if isinstance(val, str) and val.startswith("http"):
-            import requests
-            r = requests.get(val, timeout=60)
-            r.raise_for_status()
-            img = Image.open(io.BytesIO(r.content))
-        else:
-            b64 = val.split(",", 1)[1] if isinstance(val, str) and val.startswith("data:") else val
-            data = base64.b64decode(b64, validate=False)
-            img = Image.open(io.BytesIO(data))
-        img = img.convert("RGB")
-        img.save(img_path, format="PNG")
-        st.success(f"Saved image: {img_path}")
-        st.image(str(img_path), caption="Text-to-Image result", use_column_width=True)
-        with st.expander("Raw T2I output"):
-            try:
-                st.json(output)
-            except Exception:
-                st.write(type(output).__name__)
-        return str(img_path)
-    except Exception as e:
-        st.error(f"T2I test failed: {e}")
-        with st.expander("Debug details"):
-            import traceback
-            st.code(traceback.format_exc(), language="python")
-        return None
 
-def test_i2v(image_path, prompt, duration, index=1):
-    try:
-        import os
-        import requests
-        import replicate
-        from pathlib import Path
-        from config import TEMP_DIR
-        model = st.session_state.get("svd_model")
-        key = os.getenv("REPLICATE_API_KEY") or os.getenv("VIDEO_API_KEY")
-        if not key:
-            st.error("Replicate API key not set")
-            return None
-        client = replicate.Client(api_token=key)
-        out_path = Path(TEMP_DIR) / f"test_i2v_{index}.mp4"
-        if "bytedance/seedance" in (model or ""):
-            output = client.run(
-                model,
-                input={
-                    "image": open(image_path, "rb"),
-                    "prompt": prompt,
-                    "duration": max(2, min(int(duration or 5), 12)),
-                    "resolution": "1080p",
-                    "aspect_ratio": "16:9",
-                    "fps": 24,
-                    "camera_fixed": False
-                },
-                use_file_output=False
-            )
-        else:
-            desired_frames = 25 if int(duration or 5) >= 5 else 14
-            preset = "25_frames_with_svd_xt" if desired_frames >= 25 else "14_frames_with_svd"
-            output = client.run(
-                model,
-                input={
-                    "input_image": open(image_path, "rb"),
-                    "video_length": preset,
-                    "frames_per_second": 6,
-                    "sizing_strategy": "maintain_aspect_ratio"
-                },
-                use_file_output=False
-            )
-        url = None
-        if isinstance(output, str):
-            url = output
-        elif isinstance(output, list) and output:
-            if isinstance(output[0], str):
-                url = output[0]
-            elif isinstance(output[0], dict):
-                url = output[0].get("url") or output[0].get("video")
-        elif isinstance(output, dict):
-            for k in ("output", "url", "video"):
-                v = output.get(k)
-                if isinstance(v, str):
-                    url = v
-                    break
-                if isinstance(v, list) and v:
-                    if isinstance(v[0], str):
-                        url = v[0]
-                        break
-                    if isinstance(v[0], dict):
-                        url = v[0].get("url")
-                        break
-        if not url:
-            st.error("No video URL returned")
-            return None
-        r = requests.get(url, timeout=300, stream=True)
-        r.raise_for_status()
-        with open(out_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-        with open(out_path, "rb") as f:
-            vb = f.read()
-        st.success(f"Saved video: {out_path}")
-        st.video(vb)
-        return str(out_path)
-    except Exception as e:
-        st.error(f"I2V test failed: {e}")
-        with st.expander("Debug details"):
-            import traceback
-            st.code(traceback.format_exc(), language="python")
-        return None
 
 # Header
 st.title("🎬 AI Video Generator")
@@ -424,8 +248,8 @@ with st.sidebar:
     with st.expander("🔑 API Keys Status", expanded=False):
         # Check which keys are loaded
         openai_key = os.getenv("OPENAI_API_KEY", "")
-        replicate_key = os.getenv("REPLICATE_API_KEY") or os.getenv("VIDEO_API_KEY", "")
-        tts_key = os.getenv("TTS_API_KEY", "")
+        replicate_key = os.getenv("REPLICATE_API_KEY") 
+        eleven_labs_key= os.getenv("ELEVEN_LABS_API_KEY", "")
         
         # Show status for each key
         if openai_key:
@@ -442,28 +266,6 @@ with st.sidebar:
             st.success("✅ TTS API Key: Loaded from environment")
         else:
             st.info("ℹ️ TTS API Key: Optional (set TTS_API_KEY in .env)")
-        
-        st.markdown("---")
-        st.markdown("**💡 Tip:** API keys are loaded from your `.env` file automatically.")
-        st.markdown("Create a `.env` file in the project root with:")
-        st.code("""
-OPENAI_API_KEY=your-key-here
-REPLICATE_API_KEY=your-key-here
-TTS_API_KEY=your-key-here (optional)
-        """)
-
-    with st.expander("🖥️ System Status", expanded=False):
-        try:
-            import shutil
-            from video_assembler import VideoAssembler
-            ffmpeg_env = os.getenv("FFMPEG_PATH", "")
-            st.text(f"FFMPEG_PATH env: {ffmpeg_env}")
-            st.text(f"ffmpeg in PATH: {shutil.which('ffmpeg')}")
-            va = VideoAssembler()
-            st.text(f"Assembler ffmpeg_cmd: {va.ffmpeg_cmd}")
-            st.text(f"Assembler available: {va.ffmpeg_available}")
-        except Exception as e:
-            st.text(f"FFmpeg status check error: {e}")
     
     # Provider Selection
     with st.expander("🎨 Providers", expanded=True):
@@ -536,7 +338,6 @@ else:
     with col1:
         prompt = st.text_area(
             "Describe the video you want to create",
-            placeholder="Example: Explain how the water cycle works with visual examples",
             height=100,
             key="video_prompt"
         )
