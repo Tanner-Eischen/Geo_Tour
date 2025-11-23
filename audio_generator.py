@@ -3,7 +3,7 @@ Audio generation module - converts script to voiceover
 """
 import requests
 from pathlib import Path
-from config import TTS_API_KEY, TTS_VOICE_ID, AUDIO_FORMAT, TEMP_DIR
+from config import TTS_API_KEY, AUDIO_FORMAT, TEMP_DIR
 
 
 def safe_print(*args, **kwargs):
@@ -16,16 +16,15 @@ def safe_print(*args, **kwargs):
 
 
 class AudioGenerator:
-    def __init__(self, api_key=None, provider="elevenlabs"):
+    def __init__(self, api_key=None, provider="elevenlabs", voice_id=None):
         self.api_key = api_key or TTS_API_KEY
         self.provider = provider
-        
+        self.voice_id = voice_id
         self.providers = {
             "elevenlabs": self._generate_elevenlabs,
             "openai": self._generate_openai,
             "google": self._generate_google,
         }
-        
         if self.provider not in self.providers:
             raise ValueError(f"TTS provider '{self.provider}' not supported. Available: {list(self.providers.keys())}")
     
@@ -59,11 +58,8 @@ class AudioGenerator:
         """Generate audio using ElevenLabs API"""
         if not self.api_key:
             raise ValueError("No API key provided for TTS generation. Please set TTS_API_KEY in your .env file.")
-        
-        # ElevenLabs API implementation
-        # Docs: https://elevenlabs.io/docs/api-reference
-        endpoint = f"https://api.elevenlabs.io/v1/text-to-speech/{TTS_VOICE_ID}"
-        
+        voice_id = self.voice_id if self.voice_id else "Lny4bN2CTZWgKZAgIHKa"
+        endpoint = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         response = requests.post(
             endpoint,
             headers={

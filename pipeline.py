@@ -32,7 +32,8 @@ class VideoPipeline:
                  tts_provider="elevenlabs",
                  use_storyboard=None,
                  svd_model=None,
-                 sdxl_model=None):
+                 sdxl_model=None,
+                 voice_id=None):
         """
         Initialize the video generation pipeline
         
@@ -50,7 +51,7 @@ class VideoPipeline:
         self.scene_planner = ScenePlanner(openai_api_key)
         self.storyboard_gen = StoryboardGenerator(video_api_key)
         self.video_gen = VideoGenerator(video_api_key, svd_model=svd_model, sdxl_model=sdxl_model)
-        self.audio_gen = AudioGenerator(tts_api_key, tts_provider)
+        self.audio_gen = AudioGenerator(tts_api_key, tts_provider, voice_id=locals().get('voice_id'))
         self.assembler = VideoAssembler()
         
         self.use_storyboard = use_storyboard if use_storyboard is not None else USE_STORYBOARD

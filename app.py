@@ -128,10 +128,12 @@ def initialize_pipeline():
         pipeline = VideoPipeline(
             openai_api_key=openai_key,
             video_api_key=replicate_key,
-         
+            tts_api_key=tts_key,
+            tts_provider="elevenlabs",
             use_storyboard=st.session_state.get("use_storyboard", False),
             svd_model=st.session_state.get("svd_model"),
-            sdxl_model=st.session_state.get("sdxl_model")
+            sdxl_model=st.session_state.get("sdxl_model"),
+            voice_id=st.session_state.get("voice_id", "Lny4bN2CTZWgKZAgIHKa")
         )
         st.session_state.pipeline = pipeline
         return True
@@ -262,10 +264,10 @@ with st.sidebar:
         else:
             st.warning("⚠️ Replicate API Key: Not found (set REPLICATE_API_KEY in .env)")
         
-        if tts_key:
-            st.success("✅ TTS API Key: Loaded from environment")
+        if eleven_labs_key:
+            st.success("✅ Eleven Labs API Key: Loaded from environment")
         else:
-            st.info("ℹ️ TTS API Key: Optional (set TTS_API_KEY in .env)")
+            st.info("ℹ️ Eleven Labs API Key: Optional (set ELEVEN_LABS_API_KEY in .env)")
     
     # Provider Selection
     with st.expander("🎨 Providers", expanded=True):
@@ -280,18 +282,25 @@ with st.sidebar:
         # Auto-default storyboard BEFORE widget instantiation to avoid Streamlit state errors
         if "use_storyboard" not in st.session_state and st.session_state.get("video_provider") == "replicate":
             st.session_state.use_storyboard = True
-        st.selectbox(
-            "TTS Provider",
-            ["elevenlabs"],
-            key="tts_provider",
-            help="Text-to-speech provider (ElevenLabs available)"
-        )
-        
         st.checkbox(
             "Use Storyboard Generation",
             key="use_storyboard",
             help="Generate storyboard images first, then use image-to-video (better quality, slower)"
         )
+
+    # Voice Selection Accordion
+    with st.expander("🗣️ Voice", expanded=True):
+        voice_options = {
+            "Sarah": "Lny4bN2CTZWgKZAgIHKa",
+            "Nathaniel": "pFQStpMdprGFILRDrWR2",
+            "Zane": "mfxPGiKweaQEsXJix2Ve",
+            "Sona": "WfAlRPDvwudHwu88rxEX",
+            "Russ": "HKFOb9iktHA85uKXydRT",
+            "Ryan": "tJHJUEHzOkMoPmJJ5jo2"
+        }
+        selected_voice = st.selectbox("Choose Narrator Voice", list(voice_options.keys()), key="voice_name")
+        st.session_state.voice_id = voice_options[selected_voice]
+
     
     # Initialize pipeline button
     if st.button("🚀 Initialize Pipeline", type="primary", use_container_width=True):
@@ -397,45 +406,7 @@ else:
     if st.button("🎬 Generate Video", type="primary", disabled=not prompt or st.session_state.generating):
         with st.spinner("Generating video... This may take a few minutes"):
             result = generate_video(prompt)
-    # Test T2I only
-    if st.button("🧪 Test Text-to-Image Only"):
-        with st.spinner("Testing text-to-image..."):
-            _ = test_t2i(prompt)
-    if st.button("🧪 Generate Image Then Video"):
-        with st.spinner("Generating image and handing off to video..."):
-            img = test_t2i(prompt)
-            if img:
-                _ = test_i2v(img, prompt, st.session_state.get("scene_duration", 6), index=1)
-    if st.button("🧪 Generate 2 Images Then 2 Videos"):
-        with st.spinner("Generating two images and handing off to video..."):
-            img1 = test_t2i(f"{prompt} (scene 1)")
-            img2 = test_t2i(f"{prompt} (scene 2)")
-            clips = []
-            if img1:
-                v1 = test_i2v(img1, prompt, st.session_state.get("scene_duration", 6), index=1)
-                if v1:
-                    clips.append(v1)
-            if img2:
-                v2 = test_i2v(img2, prompt, st.session_state.get("scene_duration", 6), index=2)
-                if v2:
-                    clips.append(v2)
-            if len(clips) == 2:
-                try:
-                    from video_assembler import VideoAssembler
-                    from config import TEMP_DIR
-                    va = VideoAssembler()
-                    concat_path = Path(TEMP_DIR) / "test_two_scene.mp4"
-                    if getattr(va, "ffmpeg_available", False):
-                        va._concatenate_clips(clips, concat_path)
-                        with open(concat_path, "rb") as f:
-                            vb = f.read()
-                        st.success(f"Concatenated video: {concat_path}")
-                        st.video(vb)
-                    else:
-                        st.info("ffmpeg not available — showing clips separately")
-                except Exception as e:
-                    st.warning(f"Concatenation failed: {e}")
-    
+
     # Results section
     if st.session_state.result:
         st.divider()
