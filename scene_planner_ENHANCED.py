@@ -6,6 +6,7 @@ ENHANCED with automatic cinematic prompting
 from openai import OpenAI
 import json
 from config import OPENAI_API_KEY, OPENAI_MODEL, SCENE_MAX_TOKENS, TARGET_SCENES
+from system_prompts import CinematicSystemPrompts
 
 # ADDED: Import cinematic enhancer
 from cinematic_enhancer import CinematicEnhancer
@@ -78,7 +79,10 @@ DO NOT include any text outside the JSON."""
             response = self.client.chat.completions.create(
                 model=OPENAI_MODEL,
                 max_tokens=SCENE_MAX_TOKENS,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": CinematicSystemPrompts.get_scene_planning_prompt()},
+                    {"role": "user", "content": prompt}
+                ],
                 response_format={"type": "json_object"}
             )
 

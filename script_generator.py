@@ -4,6 +4,7 @@ Script generation module - converts user prompts into video scripts
 from openai import OpenAI
 import json
 from config import OPENAI_API_KEY, OPENAI_MODEL, SCRIPT_MAX_TOKENS
+from system_prompts import CinematicSystemPrompts
 
 def safe_print(*args, **kwargs):
     try:
@@ -45,7 +46,10 @@ Make the script engaging and suitable for narration. DO NOT include any text out
             response = self.client.chat.completions.create(
                 model=OPENAI_MODEL,
                 max_tokens=SCRIPT_MAX_TOKENS,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": CinematicSystemPrompts.get_script_generation_prompt()},
+                    {"role": "user", "content": CinematicSystemPrompts.get_enhanced_user_prompt_wrapper(user_prompt)}
+                ],
                 response_format={"type": "json_object"}
             )
             

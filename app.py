@@ -65,7 +65,7 @@ def initialize_pipeline():
     # Check API keys
     openai_key = os.getenv("OPENAI_API_KEY")
     replicate_key = os.getenv("REPLICATE_API_KEY") or os.getenv("VIDEO_API_KEY")
-    tts_key = os.getenv("TTS_API_KEY")
+    tts_key = os.getenv("TTS_API_KEY") or os.getenv("ELEVEN_LABS_API_KEY")
     
     if not openai_key:
         errors.append("❌ **OPENAI_API_KEY** not found in environment variables")

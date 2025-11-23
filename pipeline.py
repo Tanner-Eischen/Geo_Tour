@@ -7,7 +7,7 @@ from datetime import datetime
 
 from config import ensure_directories, OUTPUT_DIR, USE_STORYBOARD
 from script_generator import ScriptGenerator
-from scene_planner import ScenePlanner
+from scene_planner_ENHANCED import ScenePlanner
 from storyboard_generator import StoryboardGenerator
 from video_generator import VideoGenerator
 from audio_generator import AudioGenerator
